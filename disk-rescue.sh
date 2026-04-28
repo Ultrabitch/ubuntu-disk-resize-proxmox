@@ -163,9 +163,12 @@ cmd_rescue() {
       while read -r name rev; do snap remove "$name" --revision="$rev" 2>/dev/null || true; done
   fi
 
-  # 5. Trim /tmp and /var/tmp of files older than 7 days
-  log "Trimming /tmp and /var/tmp (>7 days old)"
-  find /tmp /var/tmp -mindepth 1 -mtime +7 -print -delete 2>/dev/null | wc -l | xargs -I{} echo "  removed {} entries"
+  # 5. Trim /tmp and /var/tmp of plain files older than 7 days
+  #    (-type f only — never touch system socket dirs like .X11-unix, .ICE-unix)
+  log "Trimming /tmp and /var/tmp (regular files >7 days old)"
+  local removed
+  removed="$(find /tmp /var/tmp -mindepth 1 -type f -mtime +7 -print -delete 2>/dev/null | wc -l)"
+  echo "  removed $removed files"
 
   after="$(avail_bytes)"
   freed=$(( after - before ))
